@@ -32,3 +32,4 @@
 /Users/rafaelpavao/Documents/WS/IA1/rbc/RBC/obj/Debug/net8.0/RBC.pdb
 /Users/rafaelpavao/Documents/WS/IA1/rbc/RBC/obj/Debug/net8.0/RBC.genruntimeconfig.cache
 /Users/rafaelpavao/Documents/WS/IA1/rbc/RBC/obj/Debug/net8.0/ref/RBC.dll
+/Users/rafaelpavao/Documents/WS/IA1/rbc/RBC/bin/Debug/net8.0/CsvHelper.dll

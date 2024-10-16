@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "rLATSdzwbbk=",
+  "dgSpecHash": "TJw+zZ0j9B0=",
   "success": true,
   "projectFilePath": "/Users/rafaelpavao/Documents/WS/IA1/rbc/RBC/RBC.csproj",
   "expectedPackageFiles": [
+    "/Users/rafaelpavao/.nuget/packages/csvhelper/33.0.1/csvhelper.33.0.1.nupkg.sha512",
     "/Users/rafaelpavao/.nuget/packages/microsoft.aspnetcore.openapi/8.0.4/microsoft.aspnetcore.openapi.8.0.4.nupkg.sha512",
     "/Users/rafaelpavao/.nuget/packages/microsoft.extensions.apidescription.server/6.0.5/microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512",
     "/Users/rafaelpavao/.nuget/packages/microsoft.openapi/1.4.3/microsoft.openapi.1.4.3.nupkg.sha512",
