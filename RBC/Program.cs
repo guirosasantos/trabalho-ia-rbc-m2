@@ -1,52 +1,86 @@
+using System.Globalization;
+using CsvHelper;
+using CsvHelper.Configuration;
+using RBC.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container.
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseHttpsRedirection();
 
-app.MapGet("/rbc", async () =>
+    var moviesPath = ("Data/movies.csv");
+    List<Movie> movies;
+    var ratingsPath = ("Data/ratings.csv");
+    List<Rating> ratings;
+    var tagPath = ("Data/tags.csv");
+    List<Tag> tags;
+
+    try
     {
-        var movies = await ReadMovieDataFromCsvAsync();
-        return movies;
+        movies = ReadCsv<Movie>(moviesPath, new MovieMap());
+        tags = ReadCsv<Tag>(tagPath, new TagMap());
+        ratings = ReadCsv<Rating>(ratingsPath, new RatingMap());
+        
+        Console.WriteLine($"Loaded {movies.Count} movies.");
+        Console.WriteLine($"Loaded {tags.Count} tags.");
+        Console.WriteLine($"Loaded {ratings.Count} ratings.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error: {ex.Message}");
+    }
+
+    static List<T> ReadCsv<T>(string path, ClassMap<T> map) where T : class
+    {
+        using var reader = new StreamReader(path);
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HeaderValidated = null,  // Disable header validation
+            MissingFieldFound = null // Ignore missing fields
+        };
+        using var csv = new CsvReader(reader, config);
+        csv.Context.RegisterClassMap(map); // Register the specific map
+        return new List<T>(csv.GetRecords<T>());
+    }
+
+
+    var summaries = new[]
+{
+    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+};
+
+app.MapGet("/weatherforecast", () =>
+    {
+        var forecast = Enumerable.Range(1, 5).Select(index =>
+                new WeatherForecast
+                (
+                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+                    Random.Shared.Next(-20, 55),
+                    summaries[Random.Shared.Next(summaries.Length)]
+                ))
+            .ToArray();
+        return forecast;
     })
-    .WithName("teste")
+    .WithName("GetWeatherForecast")
     .WithOpenApi();
 
 app.Run();
 
-static async Task<List<Movie>> ReadMovieDataFromCsvAsync()
+record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
-    var path = Path.Combine(Directory.GetCurrentDirectory(), "data.csv");
-    var movies = new List<Movie>();
-
-    using var reader = new StreamReader(path);
-
-    await reader.ReadLineAsync();
-
-    while (!reader.EndOfStream)
-    {
-        var line = await reader.ReadLineAsync();
-        var values = line!.Split(',');
-        var movie = new Movie
-        {
-            Name = values[0],
-            Genre = values[1],
-            Year = int.Parse(values[2]),
-            ImdbRating = double.Parse(values[3]),
-            ImdbVotes = int.Parse(values[4]),
-            BoxOffice = int.Parse(values[5]),
-            OscarWins = int.Parse(values[6]),
-            OscarNominations = int.Parse(values[7])
-        };
-
-        movies.Add(movie);
-    }
-
-    return movies;
+    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
+
