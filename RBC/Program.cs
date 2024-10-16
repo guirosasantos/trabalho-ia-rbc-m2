@@ -1,44 +1,52 @@
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
+app.MapGet("/rbc", async () =>
     {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
+        var movies = await ReadMovieDataFromCsvAsync();
+        return movies;
     })
-    .WithName("GetWeatherForecast")
+    .WithName("teste")
     .WithOpenApi();
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+static async Task<List<Movie>> ReadMovieDataFromCsvAsync()
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    var path = Path.Combine(Directory.GetCurrentDirectory(), "data.csv");
+    var movies = new List<Movie>();
+
+    using var reader = new StreamReader(path);
+
+    await reader.ReadLineAsync();
+
+    while (!reader.EndOfStream)
+    {
+        var line = await reader.ReadLineAsync();
+        var values = line!.Split(',');
+        var movie = new Movie
+        {
+            Name = values[0],
+            Genre = values[1],
+            Year = int.Parse(values[2]),
+            ImdbRating = double.Parse(values[3]),
+            ImdbVotes = int.Parse(values[4]),
+            BoxOffice = int.Parse(values[5]),
+            OscarWins = int.Parse(values[6]),
+            OscarNominations = int.Parse(values[7])
+        };
+
+        movies.Add(movie);
+    }
+
+    return movies;
 }
