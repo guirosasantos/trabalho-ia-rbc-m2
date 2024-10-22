@@ -1,6 +1,8 @@
 using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Microsoft.EntityFrameworkCore;
+using RBC;
 using RBC.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,76 +23,70 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-    var moviesPath = ("Data/movies.csv");
-    List<Movie> movies = [];
-    var ratingsPath = ("Data/ratings.csv");
-    List<Rating> ratings = [];
-    var tagPath = ("Data/tags.csv");
-    List<Tag> tags = [];
+using var context = new RbcContext();
 
-    try
+var moviesPath = ("Data/movies.csv");
+var ratingsPath = ("Data/ratings.csv");
+var tagPath = ("Data/tags.csv");
+
+using var movieReader = new StreamReader(moviesPath);
+using var csvMovies = new CsvReader(movieReader, CultureInfo.InvariantCulture);
+csvMovies.Context.RegisterClassMap<MovieMap>();
+var movies = csvMovies.GetRecords<Movie>().ToList();
+context.Movies.AddRange(movies);
+context.SaveChanges();
+
+using var ratingReader = new StreamReader(ratingsPath);
+using var csvRatings = new CsvReader(ratingReader, CultureInfo.InvariantCulture);
+csvRatings.Context.RegisterClassMap<RatingMap>();
+
+var filteredRatings = csvRatings.GetRecords<Rating>()
+    .GroupBy(r => r.MovieId)
+    .Select(g => g.First())
+    .ToList();
+
+context.Ratings.AddRange(filteredRatings);
+context.SaveChanges();
+
+using var tagReader = new StreamReader(tagPath);
+using var csvTags = new CsvReader(tagReader, CultureInfo.InvariantCulture);
+csvTags.Context.RegisterClassMap<TagMap>();
+var tags = csvTags.GetRecords<Tag>().ToList();
+context.Tags.AddRange(tags);
+
+context.SaveChanges();
+Console.WriteLine("Importação concluída!");
+
+
+app.MapGet("/movies", (int PageSize, int PageNumber) =>
     {
-        movies = ReadCsv<Movie>(moviesPath, new MovieMap());
-        tags = ReadCsv<Tag>(tagPath, new TagMap());
-        ratings = ReadCsv<Rating>(ratingsPath, new RatingMap());
-        
-        Console.WriteLine($"Loaded {movies.Count} movies.");
-        Console.WriteLine($"Loaded {tags.Count} tags.");
-        Console.WriteLine($"Loaded {ratings.Count} ratings.");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error: {ex.Message}");
-    }
-
-    static List<T> ReadCsv<T>(string path, ClassMap<T> map) where T : class
-    {
-        using var reader = new StreamReader(path);
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-        {
-            HeaderValidated = null,  // Disable header validation
-            MissingFieldFound = null // Ignore missing fields
-        };
-        using var csv = new CsvReader(reader, config);
-        csv.Context.RegisterClassMap(map); // Register the specific map
-        return new List<T>(csv.GetRecords<T>());
-    }
-
-
-
-
-app.MapGet("/movies", () =>
-    {
-        return movies.Select(m => m.ToString());
+        return context.Movies.Skip(PageSize * (PageNumber - 1)).Take(PageSize).OrderBy(m => m.Ratings.Count);
     })
     .WithName("GetAllMovies")
     .WithOpenApi();
 
 app.MapGet("/tags", () =>
     {
-        return tags.Select(t => t.ToString());
+        return context.Tags;
     })
     .WithName("GetAllTags")
     .WithOpenApi();
 
 app.MapGet("/ratings", () =>
     {
-        return ratings.Select(r => r.ToString());
+        return context.Ratings;
     })
     .WithName("GetAllRatings")
     .WithOpenApi();
 
 app.MapGet("/movies/{id}/ratings", (int id) =>
     {
-        var movie = movies.FirstOrDefault(m => m.MovieId == id).ToString();
-        
-        var movieRatings = ratings.Where(r => r.MovieId == id).Select(r => r.ToString());
+        var movie = context.Movies
+            .Include(m => m.Ratings)
+            .FirstOrDefault(m => m.MovieId == id);
 
-        return new
-        {
-            movie,
-            movieRatings
-        };
+        return 
+            movie;
     })
     .WithName("GetRatingsByMovieId")
     .WithOpenApi();

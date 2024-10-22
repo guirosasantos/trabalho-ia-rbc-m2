@@ -1,33 +1,26 @@
 namespace RBC.Models;
 
-using System;
 using CsvHelper.Configuration;
 
 public class Tag
 {
+    public int TagId { get; set; }
     public int MovieId { get; set; }
-    public string TagValue { get; set; }
-    public DateOnly Timestamp { get; set; }
-    
+    public string Name { get; set; }
+    // public Movie Movie { get; set; }
+
     public override string ToString()
     {
-        return $"MovieId: {MovieId}, Tag: {TagValue}, Timestamp: {Timestamp}";
+        return $"Tag: {Name}, MovieId: {MovieId}";
     }
 }
-
-
 
 public sealed class TagMap : ClassMap<Tag>
 {
     public TagMap()
     {
+        // Map(t => t.TagId).Name("tagId");
         Map(t => t.MovieId).Name("movieId");
-        Map(t => t.TagValue).Name("tag");
-        
-        Map(t => t.Timestamp).Convert(row =>
-        {
-            var timestamp = long.Parse(row.Row.GetField("timestamp")!);
-            return DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(timestamp).DateTime);
-        });
+        Map(t => t.Name).Name("tag");
     }
 }
