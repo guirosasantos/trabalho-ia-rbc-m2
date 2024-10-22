@@ -7,7 +7,12 @@ public class Tag
 {
     public int MovieId { get; set; }
     public string TagValue { get; set; }
-    public DateTime Timestamp { get; set; }
+    public DateOnly Timestamp { get; set; }
+    
+    public override string ToString()
+    {
+        return $"MovieId: {MovieId}, Tag: {TagValue}, Timestamp: {Timestamp}";
+    }
 }
 
 
@@ -22,7 +27,7 @@ public sealed class TagMap : ClassMap<Tag>
         Map(t => t.Timestamp).Convert(row =>
         {
             var timestamp = long.Parse(row.Row.GetField("timestamp")!);
-            return DateTimeOffset.FromUnixTimeSeconds(timestamp).DateTime;
+            return DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(timestamp).DateTime);
         });
     }
 }

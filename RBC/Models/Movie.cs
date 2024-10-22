@@ -10,6 +10,11 @@ public class Movie()
     public int MovieId { get; set; }
     public string Title { get; set; }
     public List<string> Genres { get; set; } = [];
+
+    public override string ToString()
+    {
+        return $"MovieId: {MovieId}, Title: {Title}, Genres: {string.Join(", ", Genres)}";
+    }
 }
 
 public sealed class MovieMap : ClassMap<Movie>

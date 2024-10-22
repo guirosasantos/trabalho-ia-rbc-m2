@@ -7,7 +7,12 @@ public class Rating
 {
     public int MovieId { get; set; }
     public float RatingValue { get; set; }
-    public DateTime Timestamp { get; set; }
+    public DateOnly Timestamp { get; set; }
+    
+    public override string ToString()
+    {
+        return $"MovieId: {MovieId}, Rating: {RatingValue}, Timestamp: {Timestamp}";
+    }
 }
 
 public sealed class RatingMap : ClassMap<Rating>
@@ -21,7 +26,7 @@ public sealed class RatingMap : ClassMap<Rating>
         Map(r => r.Timestamp).Convert(row =>
         {
             var timestamp = long.Parse(row.Row.GetField("timestamp"));
-            return DateTimeOffset.FromUnixTimeSeconds(timestamp).DateTime;
+            return DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(timestamp).DateTime);
         });
     }
 }

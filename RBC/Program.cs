@@ -22,11 +22,11 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
     var moviesPath = ("Data/movies.csv");
-    List<Movie> movies;
+    List<Movie> movies = [];
     var ratingsPath = ("Data/ratings.csv");
-    List<Rating> ratings;
+    List<Rating> ratings = [];
     var tagPath = ("Data/tags.csv");
-    List<Tag> tags;
+    List<Tag> tags = [];
 
     try
     {
@@ -57,30 +57,43 @@ app.UseHttpsRedirection();
     }
 
 
-    var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
 
-app.MapGet("/weatherforecast", () =>
+
+app.MapGet("/movies", () =>
     {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
+        return movies.Select(m => m.ToString());
     })
-    .WithName("GetWeatherForecast")
+    .WithName("GetAllMovies")
+    .WithOpenApi();
+
+app.MapGet("/tags", () =>
+    {
+        return tags.Select(t => t.ToString());
+    })
+    .WithName("GetAllTags")
+    .WithOpenApi();
+
+app.MapGet("/ratings", () =>
+    {
+        return ratings.Select(r => r.ToString());
+    })
+    .WithName("GetAllRatings")
+    .WithOpenApi();
+
+app.MapGet("/movies/{id}/ratings", (int id) =>
+    {
+        var movie = movies.FirstOrDefault(m => m.MovieId == id).ToString();
+        
+        var movieRatings = ratings.Where(r => r.MovieId == id).Select(r => r.ToString());
+
+        return new
+        {
+            movie,
+            movieRatings
+        };
+    })
+    .WithName("GetRatingsByMovieId")
     .WithOpenApi();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
 
