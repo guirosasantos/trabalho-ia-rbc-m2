@@ -244,4 +244,26 @@ app.MapGet("/movies/{id}/ratings", (int id) =>
     .WithName("GetRatingsByMovieId")
     .WithOpenApi();
 
+app.MapGet("/movies/{id}", async (int id) =>
+    {
+        var movie = await context.Movies
+            .Include(m => m.Genres)
+            .FirstOrDefaultAsync(m => m.MovieId == id);
+
+        return
+            new CustomFull
+            (
+                new MovieDto
+                (
+                    movie!.Title,
+                    movie.Genres.Select(g => g.Name).ToList(),
+                    movie.Ratings.Select(r => r.Score).ToList(),
+                    movie.Tags.Select(t => t.Name).ToList()
+                ),
+                new WeightCombination(0.3, 0.4, 0.2, 0.1)
+            );;
+    })
+    .WithName("GetMovieById")
+    .WithOpenApi();
+
 await app.RunAsync();
