@@ -52,7 +52,7 @@ context.Tags.AddRange(tags);
 await context.SaveChangesAsync();
 Console.WriteLine("Importação concluída!");
 
-static List<(Movie movie, double similarity)> RbcRecommend(
+static (MovieDto entryMovie, List<(Movie movie, double similarity)> recomendations) RbcRecommend(
     RbcContext context, int entryMovieId, WeightCombination weights, int recommendationNumber = 25)
 {
     var entryMovieFromBd = context.Movies.Include(movie => movie.Genres).Include(movie => movie.Ratings)
@@ -78,10 +78,10 @@ static List<(Movie movie, double similarity)> RbcRecommend(
     
     similarities.Remove(similarities.First(x => x.movie.MovieId == entryMovieId));
     
-    return similarities;
+    return (entryMovie, similarities);
 }
 
-static List<(Movie movie, double similarity)> RbcRecommendByDto(
+static (MovieDto entryMovie, List<(Movie movie, double similarity)> recomendations) RbcRecommendByDto(
     RbcContext context, MovieDto entryMovie, WeightCombination weights, int recommendationNumber = 25)
 {
     // Consultar todos os filmes do contexto
@@ -97,7 +97,7 @@ static List<(Movie movie, double similarity)> RbcRecommendByDto(
         similarity: CalculateOverallSimilarity(entryMovie, movie, weights)
     )).OrderByDescending(x => x.similarity).Take(recommendationNumber).ToList();
     
-    return similarities;
+    return (entryMovie, similarities);
 }
 
 static double CalculateOverallSimilarity(MovieDto entry, Movie movie, WeightCombination weights)
@@ -152,17 +152,33 @@ app.MapGet("/movies", (int pageSize, int pageNumber) =>
 
 app.MapPost("/recommendations/{movieId}", (int movieId, int recommendationNumber = 25, WeightCombination? weightCombination = null) =>
     {
-        var recommendations = RbcRecommend(context, movieId, weightCombination ?? weights).Take(recommendationNumber);
-        return recommendations.Select(r => new
+        var result = RbcRecommend(context, movieId, weightCombination ?? weights, recommendationNumber);
+        var recommendations = result.recomendations.Take(recommendationNumber);
+        return new
         {
-            MovieTitle = r.movie.Title,
-            Gengres = string.Join(", ", r.movie.Genres.Select(g => g.Name)),
-            Ratings = string.Join(", ", r.movie.Ratings.Select(r => r.Score.ToString(CultureInfo.InvariantCulture))),
-            AverageRating = r.movie.AverageRating(),
-            TotalRatings = r.movie.TotalRatings,
-            Tags = string.Join(", ", r.movie.Tags.Select(t => t.Name)),
-            Similarity = r.similarity
-        });
+            EntryMovie = new
+            {
+                MovieTitle = result.entryMovie.Title,
+                Gengres = string.Join(", ", result.entryMovie.Genres),
+                Ratings = string.Join(", ", result.entryMovie.Ratings.Select(r => r.ToString(CultureInfo.InvariantCulture))),
+                AverageRating = result.entryMovie.AverageRating(),
+                TotalRatings = result.entryMovie.TotalRatings,
+                Tags = string.Join(", ", result.entryMovie.Tags)
+            },
+            WeightsUsed = weightCombination ?? weights,
+            Recomendations = recommendations.Select(r =>
+                new
+                {
+                    MovieTitle = r.movie.Title,
+                    Gengres = string.Join(", ", r.movie.Genres.Select(g => g.Name)),
+                    Ratings = string.Join(", ",
+                        r.movie.Ratings.Select(r => r.Score.ToString(CultureInfo.InvariantCulture))),
+                    AverageRating = r.movie.AverageRating(),
+                    TotalRatings = r.movie.TotalRatings,
+                    Tags = string.Join(", ", r.movie.Tags.Select(t => t.Name)),
+                    Similarity = r.similarity
+                })
+        };
     })
     .WithName("GetRecommendationsByMovieId")
     .WithOpenApi();
@@ -171,17 +187,33 @@ app.MapPost("/recommendations/{movieId}", (int movieId, int recommendationNumber
 app.MapPost("/recommendations-custom", (CustomFull customFull, int recommendationNumber = 25) =>
 #pragma warning restore ASP0020
     {
-        var recommendations = RbcRecommendByDto(context, customFull.Movie, customFull.WeightCombination ?? weights).Take(recommendationNumber);
-        return recommendations.Select(r => new
+        var result = RbcRecommendByDto(context, customFull.Movie, customFull.WeightCombination ?? weights);
+        var recommendations = result.recomendations.Take(recommendationNumber).Take(recommendationNumber);
+        return new
         {
-            MovieTitle = r.movie.Title,
-            Gengres = string.Join(", ", r.movie.Genres.Select(g => g.Name)),
-            Ratings = string.Join(", ", r.movie.Ratings.Select(r => r.Score.ToString(CultureInfo.InvariantCulture))),
-            AverageRating = r.movie.AverageRating(),
-            TotalRatings = r.movie.TotalRatings,
-            Tags = string.Join(", ", r.movie.Tags.Select(t => t.Name)),
-            Similarity = r.similarity
-        });
+            EntryMovie = new
+            {
+                MovieTitle = result.entryMovie.Title,
+                Gengres = string.Join(", ", result.entryMovie.Genres),
+                Ratings = string.Join(", ", result.entryMovie.Ratings.Select(r => r.ToString(CultureInfo.InvariantCulture))),
+                AverageRating = result.entryMovie.AverageRating(),
+                TotalRatings = result.entryMovie.TotalRatings,
+                Tags = string.Join(", ", result.entryMovie.Tags)
+            },
+            WeightsUsed = customFull.WeightCombination ?? weights,
+            Recomendations = recommendations.Select(r =>
+                new
+                {
+                    MovieTitle = r.movie.Title,
+                    Gengres = string.Join(", ", r.movie.Genres.Select(g => g.Name)),
+                    Ratings = string.Join(", ",
+                        r.movie.Ratings.Select(r => r.Score.ToString(CultureInfo.InvariantCulture))),
+                    AverageRating = r.movie.AverageRating(),
+                    TotalRatings = r.movie.TotalRatings,
+                    Tags = string.Join(", ", r.movie.Tags.Select(t => t.Name)),
+                    Similarity = r.similarity
+                })
+        };
     })
     .WithName("GetRecommendationsByMovieIdWithCustomWeightsAndCustomMovie")
     .WithOpenApi();
