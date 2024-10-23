@@ -218,36 +218,12 @@ app.MapPost("/recommendations-custom", (CustomFull customFull, int recommendatio
     .WithName("GetRecommendationsByMovieIdWithCustomWeightsAndCustomMovie")
     .WithOpenApi();
 
-app.MapGet("/tags", () =>
-    {
-        return context.Tags;
-    })
-    .WithName("GetAllTags")
-    .WithOpenApi();
-
-app.MapGet("/ratings", () =>
-    {
-        return context.Ratings;
-    })
-    .WithName("GetAllRatings")
-    .WithOpenApi();
-
-app.MapGet("/movies/{id}/ratings", (int id) =>
-    {
-        var movie = context.Movies
-            .Include(m => m.Ratings)
-            .FirstOrDefault(m => m.MovieId == id);
-
-        return
-            movie;
-    })
-    .WithName("GetRatingsByMovieId")
-    .WithOpenApi();
-
 app.MapGet("/movies/{id}", async (int id) =>
     {
         var movie = await context.Movies
             .Include(m => m.Genres)
+            .Include(movie => movie.Ratings)
+            .Include(movie => movie.Tags)
             .FirstOrDefaultAsync(m => m.MovieId == id);
 
         return
@@ -261,7 +237,7 @@ app.MapGet("/movies/{id}", async (int id) =>
                     movie.Tags.Select(t => t.Name).ToList()
                 ),
                 new WeightCombination(0.3, 0.4, 0.2, 0.1)
-            );;
+            );
     })
     .WithName("GetMovieById")
     .WithOpenApi();
