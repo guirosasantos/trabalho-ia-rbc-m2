@@ -1,5 +1,6 @@
 using System.Globalization;
 using CsvHelper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RBC;
 using RBC.Models;
@@ -56,13 +57,12 @@ static List<(Movie movie, double similarity)> RbcRecommend(
 {
     var entryMovieFromBd = context.Movies.Include(movie => movie.Genres).Include(movie => movie.Ratings)
         .Include(movie => movie.Tags).First(m => m.MovieId == entryMovieId);
-    var entryMovie = new MovieDto
-    {
-        Title = entryMovieFromBd.Title,
-        Genres = entryMovieFromBd.Genres.Select(g => g.Name).ToList(),
-        Ratings = entryMovieFromBd.Ratings.Select(r => r.Score).ToList(),
-        Tags = entryMovieFromBd.Tags.Select(t => t.Name).ToList()
-    };
+    var entryMovie = new MovieDto(
+        entryMovieFromBd.Title,
+        entryMovieFromBd.Genres.Select(g => g.Name).ToList(),
+        entryMovieFromBd.Ratings.Select(r => r.Score).ToList(),
+        entryMovieFromBd.Tags.Select(t => t.Name).ToList());
+
     // Consultar todos os filmes do contexto
     var movies = context.Movies
         .Include(m => m.Genres)
@@ -167,9 +167,11 @@ app.MapPost("/recommendations/{movieId}", (int movieId, int recommendationNumber
     .WithName("GetRecommendationsByMovieId")
     .WithOpenApi();
 
-app.MapPost("/recommendations-custom/{movieId}", (MovieDto movieId, int recommendationNumber = 25, WeightCombination? weightCombination = null) =>
+#pragma warning disable ASP0020
+app.MapPost("/recommendations-custom", (CustomFull customFull, int recommendationNumber = 25) =>
+#pragma warning restore ASP0020
     {
-        var recommendations = RbcRecommend(context, movieId, weightCombination ?? weights).Take(recommendationNumber);
+        var recommendations = RbcRecommendByDto(context, customFull.Movie, customFull.WeightCombination ?? weights).Take(recommendationNumber);
         return recommendations.Select(r => new
         {
             MovieTitle = r.movie.Title,
