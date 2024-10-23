@@ -8,7 +8,6 @@ public class Rating
     public DateTimeOffset Timestamp { get; set; }
     public int MovieId { get; set; }
     public double Score { get; set; }
-    // public Movie Movie { get; set; }
 
     public override string ToString()
     {
