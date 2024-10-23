@@ -1,40 +1,34 @@
 using System.Globalization;
 using CsvHelper;
-using CsvHelper.Configuration;
 using Microsoft.EntityFrameworkCore;
 using RBC;
 using RBC.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
+
 
 app.UseHttpsRedirection();
 
 using var context = new RbcContext();
 
-var moviesPath = ("Data/movies.csv");
-var ratingsPath = ("Data/ratings.csv");
-var tagPath = ("Data/tags.csv");
+const string moviesPath = "Data/movies.csv";
+const string ratingsPath = "Data/ratings.csv";
+const string tagPath = "Data/tags.csv";
 
 using var movieReader = new StreamReader(moviesPath);
 using var csvMovies = new CsvReader(movieReader, CultureInfo.InvariantCulture);
 csvMovies.Context.RegisterClassMap<MovieMap>();
 var movies = csvMovies.GetRecords<Movie>().ToList();
 context.Movies.AddRange(movies);
-context.SaveChanges();
+await context.SaveChangesAsync();
 
 using var ratingReader = new StreamReader(ratingsPath);
 using var csvRatings = new CsvReader(ratingReader, CultureInfo.InvariantCulture);
@@ -46,7 +40,7 @@ var filteredRatings = csvRatings.GetRecords<Rating>()
     .ToList();
 
 context.Ratings.AddRange(filteredRatings);
-context.SaveChanges();
+await context.SaveChangesAsync();
 
 using var tagReader = new StreamReader(tagPath);
 using var csvTags = new CsvReader(tagReader, CultureInfo.InvariantCulture);
@@ -54,7 +48,7 @@ csvTags.Context.RegisterClassMap<TagMap>();
 var tags = csvTags.GetRecords<Tag>().ToList();
 context.Tags.AddRange(tags);
 
-context.SaveChanges();
+await context.SaveChangesAsync();
 Console.WriteLine("Importação concluída!");
 
 
@@ -85,11 +79,10 @@ app.MapGet("/movies/{id}/ratings", (int id) =>
             .Include(m => m.Ratings)
             .FirstOrDefault(m => m.MovieId == id);
 
-        return 
+        return
             movie;
     })
     .WithName("GetRatingsByMovieId")
     .WithOpenApi();
 
-app.Run();
-
+await app.RunAsync();
